@@ -1,38 +1,35 @@
 import socket
 
-MODE = 'CBC'
 KM_ADDRESS = '192.168.56.1'
 B_ADDRESS = '192.168.56.1'
 KM_PORT = 8090
 B_PORT = 9090
 IV = '1234567890abcdef'
 
-# get K3 from KM
+#server setting-up
+serv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+serv.bind((B_ADDRESS, B_PORT))
+serv.listen()
 
+# get K3 from KM
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((KM_ADDRESS, KM_PORT))
 K3 = client.recv(16)
 print('K3: ', K3)
 client.close()
 
-#communicating the encrypted mode to KM, B
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect((KM_ADDRESS, KM_PORT))
-client.send(MODE.encode('utf-8'))
-print('A sent the mode to KM:', MODE)
-client.close()
-#B
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect((B_ADDRESS, B_PORT))
-client.send(MODE.encode('utf-8'))
-print('A sent the mode to B:', MODE)
+#getting the mode from A
+client, addr = serv.accept()
+print('Got connection from ', addr)
+MODE = client.recv(4).decode()
+print('Received mode: ', MODE)
 client.close()
 
-# receiving confirmation from B
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect((B_ADDRESS, B_PORT))
-message = client.recv(2).decode()
-print('B said ', message)
+#confirming to A 
+client, addr = serv.accept()
+message = 'OK'
+client.send(message.encode())
+print('Sent ok to A')
 client.close()
 
 #receiving key 
@@ -43,6 +40,7 @@ if MODE == 'CBC':
     client.close()
     print('K1: ', K1)
 elif MODE == 'OFB':
+
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect((KM_ADDRESS, KM_PORT))
     K2 = client.recv(16)
@@ -50,3 +48,4 @@ elif MODE == 'OFB':
     print('K2: ', K2)
 
 #client.close()
+
